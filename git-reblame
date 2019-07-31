@@ -26,7 +26,7 @@ while (( $# )); do
         # git blame [options] $commit -- $file
         from_commit="$may_be_commit"
         from_commit_position="$may_be_commit_position"
-      else
+      elif [[ ! "$from_commit" ]]; then
         # git blame [options] -- $file
         #
         # We'll have to insert the commit, since there's no place for it yet.
