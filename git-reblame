@@ -33,12 +33,14 @@ while (( $# )); do
         # git blame [options] $commit -- $file
         from_commit="$may_be_commit"
         from_commit_position="$may_be_commit_position"
+        info "found from_commit_position to be %s when checking %s at\n" "$from_commit_position" "$1" "$i"
       elif [[ ! "$from_commit" ]]; then
         # git blame [options] -- $file
         #
         # We'll have to insert the commit, since there's no place for it yet.
         insert_commit=1
         from_commit_position="$i"
+        info "found from_commit_position to be %s when checking %s\n" "$i" "$1"
       fi
     ;;
 
@@ -98,6 +100,7 @@ while (( $# )); do
           may_be_commit_position="$i"
         else
           from_commit="$1"
+          info "found from_commit_position to be %s when checking %s\n" "$i" "$1"
           from_commit_position="$i"
         fi
       fi
@@ -113,6 +116,7 @@ done
 # position as that of $file (one before the end).
 if [[ ! "$from_commit_position" ]]; then
   from_commit_position="$(( i - 1 ))"
+  info "found from_commit_position to be %s when checking %s\n" "$from_commit_position" "$1"
   insert_commit=1
 fi
 
@@ -163,6 +167,8 @@ next_args=("--called-by-ourselves")
 if [[ $diagnostics ]]; then
   next_args+=(--diagnostics)
 fi
+info "from_commit_position is: %s\n" "$from_commit_position"
+
 info "next_args prefix from args for git-blame: %s\n" "${args_for_blame[*]:0:$((from_commit_position))}"
 next_args+=(
   "${args_for_blame[@]:0:$((from_commit_position))}"
