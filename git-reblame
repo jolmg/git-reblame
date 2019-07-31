@@ -1,0 +1,33 @@
+#!/bin/bash
+
+range="$1"
+filename="$2"
+
+if [[ $# -ge 3 ]]; then
+  from_commit="$3"
+  >&2 echo "from commit: $from_commit"
+else
+  from_commit="@"
+fi
+
+blame_out="$(git blame -sL "$range" "$from_commit" -- "$filename")"
+
+if [[ $# -ge 3 ]]; then
+  cat <<< "$blame_out"
+fi
+
+last_commit="$(
+  <<< "$blame_out" \
+  sed 's/ .*//' \
+  | sort \
+  | uniq \
+  | grep -v "^$(git show -s --format=%h "$from_commit")" \
+  | xargs -r git show -s --format='%cI %h' \
+  | sort -k1 \
+  | tail -1 \
+  | cut -d' ' -f2
+)"
+
+if [[ "$last_commit" ]]; then
+  "$0" "$range" "$filename" "$last_commit"
+fi
