@@ -2,23 +2,118 @@
 
 set -e
 
-range="$1"
-filename="$2"
+orig_args=("$@")
 
-if [[ $# -ge 3 ]]; then
-  from_commit="$3"
-else
-  from_commit="HEAD"
+# We want to transparently passthrough the options of git-blame. Because we
+# need to change the commit refered to in the command line, we need to find
+# where in the options they put the commit, if they did at all. The
+# possible argument configurations are:
+#
+#   git blame [options] $file
+#   git blame [options] $commit $file
+#   git blame [options] $commit -- $file
+
+i=0
+while (( $# )); do
+  case "$1" in
+    --)
+      reached_end_of_options=1
+      if [[ "$may_be_commit" ]]; then
+        # git blame [options] $commit_or_file ...
+        #
+        # turns into
+        #
+        # git blame [options] $commit -- $file
+        from_commit="$may_be_commit"
+        from_commit_position="$may_be_commit_position"
+      else
+        # git blame [options] -- $file
+        #
+        # We'll have to insert the commit, since there's no place for it yet.
+        insert_commit=1
+        from_commit_position="$i"
+      fi
+    ;;
+    -*)
+      # Take the options from the manpage and generate regex patterns to
+      # check for them.
+      blame_option_patterns="$(man git-blame | sed -nr '
+        /^OPTIONS/,/^\S/ {
+          /^ {7}-/ {
+            s/^\s*//
+            s/\[/(/g
+            s/\]/)?/g
+            s/\./\\./g
+            s/<[^>]*>/.*/g
+            s/, /\n/g
+            p
+          }
+        }
+      ')"
+      # If option necessitates arg.
+      if grep -Fxqf <(sed -n '/ .*/{s///;p}' <<< "$blame_options_patterns") <<< "$1"; then
+        shift
+      fi
+    ;;
+    *)
+      if [[ ! $reached_end_of_options ]] && ; then
+        # git blame [options] $commit_or_file ...
+        #
+        # We don't know if a "--" follows yet, so this might ambiguously be
+        # either a file or a commit. In case it's ambiguous, we'll say we
+        # *may* have the commit and position.
+        if git ls-files | grep -Fxq "$1"; then
+          may_be_commit="$1"
+          may_be_commit_position="$i"
+        else
+          from_commit="$1"
+          from_commit_position="$i"
+        fi
+      fi
+    ;;
+  esac
+  (( i++ ))
+  shift
+done
+
+# git blame [options] $file
+#
+# The last case left. We'll need to insert before $file, so record the
+# position as that of $file (one before the end).
+if [[ ! "$from_commit_position" ]]; then
+  from_commit_position="$(( i - 1 ))"
+  insert_commit=1
 fi
 
+# We might find out this commit doesn't include what we're searching for.
+# In other words, we might exit right after, so hold off on outputting this
+# until git-blame exits successfully.
 out="from commit: $from_commit"$'\n\n'
 
-blame_out="$(git blame -sL "$range" "$from_commit" -- "$filename" 2>&1)" || exit 0
+# `2>&1` and `|| exit 0` are to avoid always seeing a git-blame error at
+# the end (its failure is the only successful exit condition of this
+# script).
+#
+# FIXME: We're really only interested in blocking one case of the error. As
+# this blocks all git-blame errors from being informed to the user, we
+# might want to reconsider. Maybe we can add an option specific to this
+# script to allow the showing of these errors.
+#
+# For a default behaviour, we can show the error if this is the first
+# iteration of this script. In other words, if the user hasn't been given
+# any useful output, then probably the error is more interesting than
+# ususal.
+#
+# XXX: The other issue with this is that we're moving stderr stuff to
+# stdout. Maybe we should use temporary files to keep them separate and
+# still hold them from being shown to the user.
+blame_out="$(git blame "${orig_args[@]}" 2>&1)" || exit 0
 
+# We're alive! So output your stuff.
 cat <<< "$out$blame_out"
 echo
 
-last_commit="$(
+latest_commit="$(
   <<< "$blame_out" \
   sed 's/ .*//' \
   | sort \
@@ -29,4 +124,12 @@ last_commit="$(
   | cut -d' ' -f2
 )"
 
-"$0" "$range" "$filename" "$last_commit~"
+>< # FIXME: This is incomplete
+if [[ $insert_commit ]]; then
+  next_args=("${orig_args[@]}")
+else
+  next_args=("${orig_args[@]}")
+fi
+
+# exec for tail-call optimization
+exec "$0" "${next_args[@]}"
