@@ -3,6 +3,8 @@
 set -e
 
 args_for_blame=()
+add_spaces=1
+add_headers=1
 
 # We want to transparently passthrough the options of git-blame. Because we
 # need to change the commit refered to in the command line, we need to find
@@ -47,7 +49,8 @@ while (( $# )); do
     # NOTE: If we ever add options specific to this script, then they
     # should go here, in between `--` and `-*`. Remember to subtract from
     # $i as that's supposed to be tracking the placement in
-    # $args_for_blame.
+    # $args_for_blame. Also, remember that you might want to add them to
+    # next_args so they passthrough to the next invocation.
 
     # This is for *internal use only*. It's so we know we're in a recursive
     # call and so some useful output has been given to the user. We'll use
@@ -59,6 +62,19 @@ while (( $# )); do
 
     --diagnostics)
       diagnostics=1
+      (( i-- )) || true
+    ;;
+
+    # Option names are based on what's default, but I don't want double
+    # negatives in my conditions, so that's why the discrepancy in names.
+
+    --no-spaces)
+      add_spaces=
+      (( i-- )) || true
+    ;;
+
+    --no-headers)
+      add_headers=
       (( i-- )) || true
     ;;
 
@@ -124,10 +140,17 @@ if [[ ! "$from_commit_position" ]]; then
   insert_commit=1
 fi
 
-# We might find out this commit doesn't include what we're searching for.
-# In other words, we might exit right after, so hold off on outputting this
-# until git-blame exits successfully.
-out="from commit: $from_commit"$'\n\n'
+if [[ $add_headers ]]; then
+  info "adding headers"
+  # We might find out this commit doesn't include what we're searching for.
+  # In other words, we might exit right after, so hold off on outputting
+  # this until git-blame exits successfully.
+  out="from commit: $from_commit"$'\n'
+
+  if [[ $add_spaces ]]; then
+    out+=$'\n'
+  fi
+fi
 
 # `2>&1` and `|| exit 0` are to avoid always seeing a git-blame error at
 # the end (its failure is the only successful exit condition of this
@@ -154,7 +177,10 @@ fi
 
 # We're alive! So output your stuff.
 cat <<< "$out$blame_out"
-echo
+
+if [[ $add_spaces ]]; then
+  echo
+fi
 
 latest_commit="$(
   <<< "$blame_out" \
@@ -171,6 +197,15 @@ next_args=("--called-by-ourselves")
 if [[ $diagnostics ]]; then
   next_args+=(--diagnostics)
 fi
+
+if [[ ! $add_headers ]]; then
+  next_args+=(--no-headers)
+fi
+
+if [[ ! $add_spaces ]]; then
+  next_args+=(--no-spaces)
+fi
+
 info "from_commit_position is: %s\n" "$from_commit_position"
 
 info "next_args prefix from args for git-blame: %s\n" "${args_for_blame[*]:0:$((from_commit_position))}"
