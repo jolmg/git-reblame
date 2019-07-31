@@ -2,9 +2,50 @@
 
 set -e
 
+version=1.0.0
 args_for_blame=()
 add_spaces=1
 add_headers=1
+
+usage() {
+  cat <<EOF
+usage: $0 [-h|--help] [-v|--version] [--no-spaces] [--no-headers] [--diagnostics] {<git-blame-options-and-argument> ...}
+
+description:
+  Repeatedly calls git-blame with whatever options you provide, with
+  exception of --help and --version. Each time, the commit (optionally)
+  passed to git-blame will be replaced with the latest one from the output
+  of the previous invocation. This goes on until git-blame fails. The point
+  is to see the complete history of whatever you ask of git-blame.
+
+  By default, the output of each git-blame invocation is prefixed with
+  spacing and a header line saying "from commit: <commit>". The spacing and
+  headers can be disabled with --no-spaces and --no-headers, repectively.
+  That might be useful if you want to process the output in a script, for
+  example, to print the names of every author involved in the writing of a
+  function.
+
+option descriptions:
+  -h, --help
+    Show this help.
+
+  -v, --version
+    Show the version of this script.
+
+  --diagnostics
+    I guess I could have also called it "verbosity", but it's meant for
+    debugging of the script. Maybe this should be for internal use only...
+
+  --no-headers
+    Disable the headers and the blank line printed after each one. This
+    might be useful when processing the output with another program.
+
+  --no-spaces
+    Disable the blank lines used to separate the output of each invocation
+    and the headers. This might be useful when processing the output with
+    another program.
+EOF
+}
 
 # We want to transparently passthrough the options of git-blame. Because we
 # need to change the commit refered to in the command line, we need to find
@@ -46,13 +87,13 @@ while (( $# )); do
       fi
     ;;
 
-    # NOTE: If we ever add options specific to this script, then they
-    # should go here, in between `--` and `-*`. Remember to subtract from
-    # $i as that's supposed to be tracking the placement in
-    # $args_for_blame. Also, remember that you might want to add them to
-    # next_args so they passthrough to the next invocation.
+    # NOTE: When adding options specific to this script, they should go
+    # here, in between `--` and `-*`. Remember to subtract from $i as
+    # that's supposed to be tracking the placement in $args_for_blame.
+    # Also, remember that you might want to add them to $next_args so they
+    # passthrough to the next invocation.
 
-    # This is for *internal use only*. It's so we know we're in a recursive
+    # This is for *INTERNAL USE ONLY*. It's so we know we're in a recursive
     # call and so some useful output has been given to the user. We'll use
     # this to know if we should suppress git-blame errors.
     --called-by-ourselves)
@@ -76,6 +117,18 @@ while (( $# )); do
     --no-headers)
       add_headers=
       (( i-- )) || true
+    ;;
+
+    --help)
+      usage
+      exit
+      (( i-- )) || true # Why? Because I like consistency.
+    ;;
+
+    --version)
+      printf "%s\n" "$version"
+      exit
+      (( i-- )) || true # I really do.
     ;;
 
     -*)
