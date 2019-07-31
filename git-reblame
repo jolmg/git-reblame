@@ -45,17 +45,21 @@ while (( $# )); do
     ;;
 
     # NOTE: If we ever add options specific to this script, then they
-    # should go here, in between `--` and `-*`.
+    # should go here, in between `--` and `-*`. Remember to subtract from
+    # $i as that's supposed to be tracking the placement in
+    # $args_for_blame.
 
     # This is for *internal use only*. It's so we know we're in a recursive
     # call and so some useful output has been given to the user. We'll use
     # this to know if we should suppress git-blame errors.
     --called-by-ourselves)
       called_by_ourselves=1
+      (( i-- )) || true
     ;;
 
     --diagnostics)
       diagnostics=1
+      (( i-- )) || true
     ;;
 
     -*)
