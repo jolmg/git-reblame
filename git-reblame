@@ -45,6 +45,13 @@ while (( $# )); do
     # NOTE: If we ever add options specific to this script, then they
     # should go here, in between `--` and `-*`.
 
+    # This is for *internal use only*. It's so we know we're in a recursive
+    # call and so some useful output has been given to the user. We'll use
+    # this to know if we should suppress git-blame errors.
+    --called-by-ourselves)
+      called_by_ourselves=1
+    ;;
+
     --diagnostics)
       diagnostics=1
     ;;
@@ -123,16 +130,19 @@ out="from commit: $from_commit"$'\n\n'
 # might want to reconsider. Maybe we can add an option specific to this
 # script to allow the showing of these errors.
 #
-# For a default behaviour, we can show the error if this is the first
-# iteration of this script. In other words, if the user hasn't been given
-# any useful output, then probably the error is more interesting than
-# ususal.
+# For a default behaviour, we show the error if this is the first iteration
+# of this script. In other words, if the user hasn't been given any useful
+# output, then probably the error is more interesting than ususal.
 #
 # XXX: The other issue with this is that we're moving stderr stuff to
 # stdout. Maybe we should use temporary files to keep them separate and
 # still hold them from being shown to the user.
 info "calling %s\n" "git blame ${args_for_blame[*]}"
-blame_out="$(git blame "${args_for_blame[@]}" 2>&1)" || exit 0
+if [[ "$called_by_ourselves" ]]; then
+  blame_out="$(git blame "${args_for_blame[@]}" 2>&1)" || exit 0
+else
+  blame_out="$(git blame "${args_for_blame[@]}")"
+fi
 
 # We're alive! So output your stuff.
 cat <<< "$out$blame_out"
@@ -149,9 +159,9 @@ latest_commit="$(
   | cut -d' ' -f2
 )"
 
-
+next_args=("--called-by-ourselves")
 info "next_args prefix from args for git-blame: %s\n" "${args_for_blame[*]:0:$((from_commit_position))}"
-next_args=(
+next_args+=(
   "${args_for_blame[@]:0:$((from_commit_position))}"
   "$latest_commit~"
 )
