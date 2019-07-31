@@ -1,20 +1,22 @@
 #!/bin/bash
 
+set -e
+
 range="$1"
 filename="$2"
 
 if [[ $# -ge 3 ]]; then
   from_commit="$3"
-  >&2 echo "from commit: $from_commit"
 else
-  from_commit="@"
+  from_commit="HEAD"
 fi
 
-blame_out="$(git blame -sL "$range" "$from_commit" -- "$filename")"
+out="from commit: $from_commit"$'\n\n'
 
-if [[ $# -ge 3 ]]; then
-  cat <<< "$blame_out"
-fi
+blame_out="$(git blame -sL "$range" "$from_commit" -- "$filename" 2>&1)" || exit 0
+
+cat <<< "$out$blame_out"
+echo
 
 last_commit="$(
   <<< "$blame_out" \
