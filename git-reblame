@@ -126,11 +126,16 @@ latest_commit="$(
   | cut -d' ' -f2
 )"
 
->< # FIXME: This is incomplete
+
+next_args=(
+  "${orig_args[@]:0:$((from_commit_position))}"
+  "$latest_commit~"
+)
+
 if [[ $insert_commit ]]; then
-  next_args=("${orig_args[@]}")
+  next_args+=("${orig_args[@]:$from_commit_position}")
 else
-  next_args=("${orig_args[@]}")
+  next_args+=("${orig_args[@]:$((from_commit_position + 1))}")
 fi
 
 # exec for tail-call optimization
