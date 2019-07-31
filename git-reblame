@@ -160,6 +160,9 @@ latest_commit="$(
 )"
 
 next_args=("--called-by-ourselves")
+if [[ $diagnostics ]]; then
+  next_args+=(--diagnostics)
+fi
 info "next_args prefix from args for git-blame: %s\n" "${args_for_blame[*]:0:$((from_commit_position))}"
 next_args+=(
   "${args_for_blame[@]:0:$((from_commit_position))}"
