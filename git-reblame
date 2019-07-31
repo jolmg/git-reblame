@@ -2,7 +2,7 @@
 
 set -e
 
-orig_args=("$@")
+args_for_blame=()
 
 # We want to transparently passthrough the options of git-blame. Because we
 # need to change the commit refered to in the command line, we need to find
@@ -23,6 +23,7 @@ i=0
 while (( $# )); do
   case "$1" in
     --)
+      args_for_blame+=("$1")
       reached_end_of_options=1
       if [[ "$may_be_commit" ]]; then
         # git blame [options] $commit_or_file ...
@@ -49,6 +50,7 @@ while (( $# )); do
     ;;
 
     -*)
+      args_for_blame+=("$1")
       # Take the options from the manpage and generate regex patterns to
       # check for them.
       blame_option_patterns="$(man git-blame | sed -nr '
@@ -70,12 +72,14 @@ while (( $# )); do
         option="-$(grep -o '.$' <<< "$option")"
       fi
       if grep -Fxqf <(sed -n '/ .*/{s///;p}' <<< "$blame_option_patterns") <<< "$option"; then
+        args_for_blame+=("$2")
         (( i++ )) || true
         shift
       fi
     ;;
 
     *)
+      args_for_blame+=("$1")
       if [[ ! $reached_end_of_options ]]; then
         # git blame [options] $commit_or_file ...
         #
@@ -128,7 +132,7 @@ out="from commit: $from_commit"$'\n\n'
 # stdout. Maybe we should use temporary files to keep them separate and
 # still hold them from being shown to the user.
 info "calling %s\n" "git blame ${args_for_blame[*]}"
-blame_out="$(git blame "${orig_args[@]}" 2>&1)" || exit 0
+blame_out="$(git blame "${args_for_blame[@]}" 2>&1)" || exit 0
 
 # We're alive! So output your stuff.
 cat <<< "$out$blame_out"
@@ -148,16 +152,16 @@ latest_commit="$(
 
 info "next_args prefix from args for git-blame: %s\n" "${args_for_blame[*]:0:$((from_commit_position))}"
 next_args=(
-  "${orig_args[@]:0:$((from_commit_position))}"
+  "${args_for_blame[@]:0:$((from_commit_position))}"
   "$latest_commit~"
 )
 
 if [[ $insert_commit ]]; then
-  info "next_args suffix from args for git-blame: %s\n" "${orig_args[@]:$from_commit_position}"
-  next_args+=("${orig_args[@]:$from_commit_position}")
+  info "next_args suffix from args for git-blame: %s\n" "${args_for_blame[@]:$from_commit_position}"
+  next_args+=("${args_for_blame[@]:$from_commit_position}")
 else
-  info "next_args suffix from args for git-blame: %s\n" "${orig_args[@]:$((from_commit_position + 1))}"
-  next_args+=("${orig_args[@]:$((from_commit_position + 1))}")
+  info "next_args suffix from args for git-blame: %s\n" "${args_for_blame[@]:$((from_commit_position + 1))}"
+  next_args+=("${args_for_blame[@]:$((from_commit_position + 1))}")
 fi
 
 # exec for tail-call optimization
