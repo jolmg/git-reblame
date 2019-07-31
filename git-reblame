@@ -58,7 +58,7 @@ while (( $# )); do
       fi
     ;;
     *)
-      if [[ ! $reached_end_of_options ]] && ; then
+      if [[ ! $reached_end_of_options ]]; then
         # git blame [options] $commit_or_file ...
         #
         # We don't know if a "--" follows yet, so this might ambiguously be
