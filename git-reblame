@@ -58,6 +58,7 @@ while (( $# )); do
         option="-$(grep -o '.$' <<< "$option")"
       fi
       if grep -Fxqf <(sed -n '/ .*/{s///;p}' <<< "$blame_option_patterns") <<< "$option"; then
+        (( i++ )) || true
         shift
       fi
     ;;
