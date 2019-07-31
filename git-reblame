@@ -21,13 +21,10 @@ last_commit="$(
   sed 's/ .*//' \
   | sort \
   | uniq \
-  | grep -v "^$(git show -s --format=%h "$from_commit")" \
   | xargs -r git show -s --format='%cI %h' \
   | sort -k1 \
   | tail -1 \
   | cut -d' ' -f2
 )"
 
-if [[ "$last_commit" ]]; then
-  "$0" "$range" "$filename" "$last_commit"
-fi
+"$0" "$range" "$filename" "$last_commit~"
