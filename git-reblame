@@ -34,8 +34,10 @@ while (( $# )); do
         from_commit_position="$i"
       fi
     ;;
+
     # NOTE: If we ever add options specific to this script, then they
     # should go here, in between `--` and `-*`.
+
     -*)
       # Take the options from the manpage and generate regex patterns to
       # check for them.
@@ -62,6 +64,7 @@ while (( $# )); do
         shift
       fi
     ;;
+
     *)
       if [[ ! $reached_end_of_options ]]; then
         # git blame [options] $commit_or_file ...
