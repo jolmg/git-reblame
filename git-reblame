@@ -47,6 +47,12 @@ option descriptions:
 EOF
 }
 
+info() {
+  if [[ $diagnostics ]]; then
+    printf "$@" | awk 1 >&2
+  fi
+}
+
 # We want to transparently passthrough the options of git-blame. Because we
 # need to change the commit refered to in the command line, we need to find
 # where in the options they put the commit, if they did at all. The
@@ -55,12 +61,6 @@ EOF
 #   git blame [options] $file
 #   git blame [options] $commit $file
 #   git blame [options] $commit -- $file
-
-info() {
-  if [[ $diagnostics ]]; then
-    printf "$@" | awk 1 >&2
-  fi
-}
 
 i=0
 while (( $# )); do
