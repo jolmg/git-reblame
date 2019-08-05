@@ -3,7 +3,7 @@ Repeatedly calls git-blame to see full history of whatever you ask of git-blame
 
 # Quick example
 
-Here is a normal git-blame call:
+Using the gnupg repo for this example, here is a normal git-blame call:
 
 ```
 $ git blame -sL '/^iobuf_writestr\b/,/^}/' iobuf.c
