@@ -97,4 +97,8 @@ from commit: a6d4bca3b~
 
 It provides full transparency of git-blame options, with the exception of `--help`, which it overrides.
 
+# Installation
+
+Just put it somewhere in your `$PATH`.
+
 Happy coding.
