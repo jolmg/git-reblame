@@ -214,6 +214,9 @@ if [[ $add_headers ]]; then
   # We might find out this commit doesn't include what we're searching for.
   # In other words, we might exit right after, so hold off on outputting
   # this until git-blame exits successfully.
+  if [[ ! $from_commit ]]; then
+    from_commit="HEAD"
+  fi
   out="from commit: $from_commit"$'\n'
 
   if [[ $add_spaces ]]; then
