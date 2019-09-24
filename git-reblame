@@ -18,7 +18,7 @@
 
 set -e
 
-version=1.0.0
+version=1.0.1
 args_for_blame=()
 add_spaces=1
 add_headers=1
