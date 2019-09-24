@@ -257,6 +257,7 @@ fi
 latest_commit="$(
   <<< "$blame_out" \
   sed 's/ .*//' \
+  | grep -Ev '^0+$' \
   | sort \
   | uniq \
   | xargs -r git show -s --format='%cI %h' \
